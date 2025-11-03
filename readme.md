@@ -6,31 +6,24 @@ Transform yourself into your favorite superhero using AI face swapping!
 
 - 📸 Take photos with webcam or upload images
 - 🎭 Choose from multiple superhero characters
-- 🤖 AI-powered face swapping using Replicate API
-- ⚡ Fast processing (~3-5 seconds)
+- 🤖 AI-powered face swapping using FaceFusion (100% local, no API required!)
+- ⚡ Fast processing (runs locally on your machine)
 - 💾 Download your superhero transformation
+- 🔒 Privacy-focused (no cloud processing)
 
 ## 🚀 Quick Start
 
-### 1. Get Replicate API Token (FREE)
-
-1. Go to https://replicate.com/account/api-tokens
-2. Sign up (free $5 credit = ~1000 face swaps)
-3. Copy your API token (starts with `r8_`)
-
-### 2. Setup
+### 1. Install Dependencies
 
 ```bash
-# Edit backend/.env
-nano backend/.env
-
-# Replace 'your_token_here' with your actual token:
-REPLICATE_API_TOKEN=r8_your_actual_token_here
+cd backend
+pip install -r requirements.txt
 ```
 
-### 3. Start the App
+### 2. Start the App
 
 ```bash
+# From project root
 ./start.sh
 ```
 
@@ -38,7 +31,7 @@ This will start:
 - Backend on http://localhost:8000
 - Frontend on http://localhost:3000
 
-### 4. Use the App
+### 3. Use the App
 
 1. Open http://localhost:3000/booth
 2. Take a photo or upload one
@@ -51,8 +44,9 @@ This will start:
 ```
 superhero-photobooth/
 ├── backend/              # FastAPI backend
-│   ├── main.py          # Main API server
-│   ├── .env             # Your API token (edit this!)
+│   ├── api.py           # Main API server
+│   ├── facefusion/      # FaceFusion library
+│   ├── facefusion.py    # FaceFusion CLI
 │   └── requirements.txt # Python dependencies
 ├── frontend/            # Next.js frontend
 │   ├── app/
@@ -72,11 +66,8 @@ cd backend
 # Install dependencies
 pip install -r requirements.txt
 
-# Set your token in .env
-echo "REPLICATE_API_TOKEN=r8_your_token" > .env
-
 # Run
-python main.py
+python api.py
 ```
 
 ### Frontend
@@ -106,8 +97,7 @@ const CHARACTERS = [
 
 ## 💰 Pricing
 
-- **FREE**: $5 credit (~1000 images)
-- **After**: $0.005 per image (half a cent!)
+**100% FREE!** Runs entirely on your local machine - no API costs, no cloud processing.
 
 ## 🔧 How It Works
 
@@ -118,25 +108,25 @@ const CHARACTERS = [
 
 2. **Backend** (FastAPI):
    - Receives user photo + character image
-   - Converts to base64 data URIs
-   - Calls Replicate face swap API
+   - Saves images to temporary files
+   - Calls FaceFusion CLI for face swapping
    - Returns swapped image
 
-3. **Replicate API**:
-   - Uses `yan-ops/face_swap` model
+3. **FaceFusion**:
+   - Local AI model (no internet required)
    - Swaps user's face onto character body
-   - Returns high-quality result
+   - High-quality results using state-of-the-art algorithms
 
 ## 🐛 Troubleshooting
 
 ### "Backend not responding"
-- Make sure backend is running: `cd backend && python main.py`
+- Make sure backend is running: `cd backend && python api.py`
 - Check http://localhost:8000 shows "Backend is running!"
 
-### "Token error"
-- Edit `backend/.env`
-- Make sure token starts with `r8_`
-- Get new token from https://replicate.com/account/api-tokens
+### "Face swap failed"
+- First run downloads AI models (may take 5-10 minutes)
+- Check backend logs for details
+- Ensure enough disk space (~2GB for models)
 
 ### "Module not found"
 ```bash
@@ -189,7 +179,7 @@ Health check endpoint.
 
 - **Frontend**: Next.js 14, TypeScript, Tailwind CSS
 - **Backend**: FastAPI (Python)
-- **AI**: Replicate API (face swap model)
+- **AI**: FaceFusion (local face swap engine)
 - **Camera**: react-webcam
 
 ## 📜 License
@@ -198,7 +188,7 @@ MIT License - Feel free to use this for your projects!
 
 ## 🙏 Credits
 
-- Face swap model: [yan-ops/face_swap on Replicate](https://replicate.com/yan-ops/face_swap)
+- Face swap engine: [FaceFusion](https://github.com/facefusion/facefusion)
 - Built with ❤️ using FastAPI and Next.js
 
 ---

@@ -1,9 +1,9 @@
 # Quick Reference Card 🚀
 
-## Installation (3 Commands)
+## Installation (2 Commands)
 ```bash
-# 1. Backend (using uv - faster and more reliable)
-cd backend && uv pip install fastapi uvicorn python-multipart Pillow --system && python3 ai/simple_morph.py
+# 1. Backend
+cd backend && pip install -r requirements.txt
 
 # 2. Frontend  
 cd ../frontend && npm install
@@ -11,25 +11,31 @@ cd ../frontend && npm install
 # 3. Done! ✅
 ```
 
-## Running (2 Terminals)
+## Running (One Command)
+```bash
+# From project root
+./start.sh
+```
+
+Or manually (2 terminals):
 ```bash
 # Terminal 1
-cd backend && python3 main.py
+cd backend && python api.py
 
 # Terminal 2
 cd frontend && npm run dev
 ```
 
 ## URLs
-- **App:** http://localhost:3000
+- **App:** http://localhost:3000/booth
 - **API:** http://localhost:8000
 - **API Docs:** http://localhost:8000/docs
 
 ## Key Files
 ```
 frontend/app/booth/page.tsx  → Main UI
-backend/main.py              → API endpoints
-backend/ai/simple_morph.py   → Face blending
+backend/api.py               → API endpoints
+backend/facefusion/          → Face swapping engine
 ```
 
 ## Customization
@@ -42,32 +48,32 @@ backend/ai/simple_morph.py   → Face blending
 - Edit `frontend/app/globals.css`
 - Modify Tailwind classes in components
 
-### Improve Face Swapping
-```bash
-pip install opencv-python numpy
-# Backend will auto-use face_swap.py
-```
-
 ## Common Issues
 
-**ModuleNotFoundError: PIL**
+**ModuleNotFoundError**
 ```bash
-pip3 install --user Pillow
+cd backend && pip install -r requirements.txt
 ```
 
 **Port in use**
-- Backend: Edit last line in `backend/main.py`
+- Backend: Edit last line in `backend/api.py`
 - Frontend: Next.js auto-increments port
 
 **Webcam doesn't work**
 - Use "Upload Photo" instead
 - Check browser camera permissions
 
+**First run is slow**
+- FaceFusion downloads AI models on first use (~2GB)
+- Wait 5-10 minutes for initial setup
+- Subsequent runs will be fast
+
 ## Features
 ✅ Webcam + Upload  
-✅ 4 Characters  
+✅ Multiple Characters  
 ✅ Download Result  
 ✅ Retake/Try Another  
 ✅ Responsive UI  
+✅ 100% Local Processing (No API costs!)
 
 **Have fun! 🦸‍♂️**
