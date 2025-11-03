@@ -1,42 +1,208 @@
-# Copilot Instructions: Build an AI-Powered Photo Booth
+# 🦸 Superhero Photo Booth
 
-Goal:
-Create a web application that allows a user to upload or capture their photo, select a movie character, and generate a morphed image where the user's face is blended with the chosen character's body.
+Transform yourself into your favorite superhero using AI face swapping!
 
-Architecture Overview:
-- Frontend: Next.js or React (camera capture, character selection, image preview, and download button)
-- Backend: FastAPI (Python) or Node.js (Express) server to handle image uploads and call AI models
-- AI Core: Python script that performs face detection and morphing using one of the following approaches:
-  - SimSwap or InsightFace for realistic face swapping
-  - Stable Diffusion + ControlNet + InstantID for stylized diffusion-based blending
-- Storage: Use local storage for now (later can integrate AWS S3 or Firebase)
-- Output: A single generated image with the user's face blended on the movie character's body.
+## ✨ Features
 
-Core Steps to Implement:
-1. Create a frontend page `/booth` with:
-   - Webcam capture and file upload options.
-   - Dropdown to select a movie character (preloaded static images in `/public/characters`).
-   - Submit button to send image + character choice to backend.
+- 📸 Take photos with webcam or upload images
+- 🎭 Choose from multiple superhero characters
+- 🤖 AI-powered face swapping using Replicate API
+- ⚡ Fast processing (~3-5 seconds)
+- 💾 Download your superhero transformation
 
-2. Backend endpoint `/api/morph`:
-   - Accept multipart/form-data (user image + character name).
-   - Run the face morphing model (using SimSwap or Stable Diffusion pipeline).
-   - Return the generated image as a base64 or downloadable URL.
+## 🚀 Quick Start
 
-3. AI Morphing Logic (Python):
-   - Detect user face and align it with target character.
-   - Blend faces using chosen model.
-   - Apply Poisson blending or feathered alpha mask for natural transitions.
+### 1. Get Replicate API Token (FREE)
 
-4. Frontend should display loading animation and final output image.
+1. Go to https://replicate.com/account/api-tokens
+2. Sign up (free $5 credit = ~1000 face swaps)
+3. Copy your API token (starts with `r8_`)
 
-5. Ensure modularity — `ai/face_swap.py`, `routes/morph.py`, `frontend/pages/booth.tsx`.
+### 2. Setup
 
-Deliverables:
-- A minimal working prototype with clean, readable, and modular code.
-- Include comments explaining each major function.
-- Focus on local testing before deployment.
+```bash
+# Edit backend/.env
+nano backend/.env
 
-Bonus (optional):
-- Add “Retake Photo” and “Try Another Character” buttons.
-- Integrate live preview before morphing.
+# Replace 'your_token_here' with your actual token:
+REPLICATE_API_TOKEN=r8_your_actual_token_here
+```
+
+### 3. Start the App
+
+```bash
+./start.sh
+```
+
+This will start:
+- Backend on http://localhost:8000
+- Frontend on http://localhost:3000
+
+### 4. Use the App
+
+1. Open http://localhost:3000/booth
+2. Take a photo or upload one
+3. Choose a superhero character
+4. Click "Transform Me!"
+5. Download your result!
+
+## 📁 Project Structure
+
+```
+superhero-photobooth/
+├── backend/              # FastAPI backend
+│   ├── main.py          # Main API server
+│   ├── .env             # Your API token (edit this!)
+│   └── requirements.txt # Python dependencies
+├── frontend/            # Next.js frontend
+│   ├── app/
+│   │   └── booth/page.tsx  # Main photo booth UI
+│   └── public/
+│       └── characters/     # Superhero images
+└── start.sh            # One-command startup script
+```
+
+## 🛠️ Manual Setup
+
+### Backend
+
+```bash
+cd backend
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Set your token in .env
+echo "REPLICATE_API_TOKEN=r8_your_token" > .env
+
+# Run
+python main.py
+```
+
+### Frontend
+
+```bash
+cd frontend
+
+# Install dependencies
+npm install
+
+# Run
+npm run dev
+```
+
+## 🎨 Adding More Characters
+
+1. Add superhero image to `public/characters/yourcharacter.jpg`
+2. Edit `frontend/app/booth/page.tsx`:
+
+```typescript
+const CHARACTERS = [
+  { id: 'ironman', name: 'Iron Man', image: '/characters/ironman.jpg' },
+  { id: 'yourcharacter', name: 'Your Character', image: '/characters/yourcharacter.jpg' },
+  // ... more characters
+]
+```
+
+## 💰 Pricing
+
+- **FREE**: $5 credit (~1000 images)
+- **After**: $0.005 per image (half a cent!)
+
+## 🔧 How It Works
+
+1. **Frontend** (Next.js):
+   - Captures user photo via webcam or file upload
+   - User selects superhero character
+   - Sends both images to backend
+
+2. **Backend** (FastAPI):
+   - Receives user photo + character image
+   - Converts to base64 data URIs
+   - Calls Replicate face swap API
+   - Returns swapped image
+
+3. **Replicate API**:
+   - Uses `yan-ops/face_swap` model
+   - Swaps user's face onto character body
+   - Returns high-quality result
+
+## 🐛 Troubleshooting
+
+### "Backend not responding"
+- Make sure backend is running: `cd backend && python main.py`
+- Check http://localhost:8000 shows "Backend is running!"
+
+### "Token error"
+- Edit `backend/.env`
+- Make sure token starts with `r8_`
+- Get new token from https://replicate.com/account/api-tokens
+
+### "Module not found"
+```bash
+cd backend
+pip install -r requirements.txt
+```
+
+### "Frontend won't start"
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+## 📝 API Documentation
+
+### POST /morph
+
+Swap face from user image onto character image.
+
+**Request:**
+```
+POST http://localhost:8000/morph
+Content-Type: multipart/form-data
+
+user_image: <image file>
+character_image: <image file>
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "image": "data:image/png;base64,..."
+}
+```
+
+### GET /
+
+Health check endpoint.
+
+**Response:**
+```json
+{
+  "status": "Backend is running!"
+}
+```
+
+## 🎯 Tech Stack
+
+- **Frontend**: Next.js 14, TypeScript, Tailwind CSS
+- **Backend**: FastAPI (Python)
+- **AI**: Replicate API (face swap model)
+- **Camera**: react-webcam
+
+## 📜 License
+
+MIT License - Feel free to use this for your projects!
+
+## 🙏 Credits
+
+- Face swap model: [yan-ops/face_swap on Replicate](https://replicate.com/yan-ops/face_swap)
+- Built with ❤️ using FastAPI and Next.js
+
+---
+
+**Ready to become a superhero?** 🦸‍♂️🦸‍♀️
+
+Run `./start.sh` and visit http://localhost:3000/booth

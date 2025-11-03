@@ -48,28 +48,40 @@ export default function BoothPage() {
     setIsProcessing(true)
     
     try {
-      // Convert base64 to blob
-      const response = await fetch(userImage)
-      const blob = await response.blob()
+      // Convert user image base64 to blob
+      const userResponse = await fetch(userImage)
+      const userBlob = await userResponse.blob()
       
+      // Get character image path
+      const characterPath = CHARACTERS.find(c => c.id === selectedCharacter)?.image
+      if (!characterPath) {
+        throw new Error('Character not found')
+      }
+      
+      // Fetch character image
+      const charResponse = await fetch(characterPath)
+      const charBlob = await charResponse.blob()
+      
+      // Create form data with both images
       const formData = new FormData()
-      formData.append('user_image', blob, 'user.jpg')
-      formData.append('character', selectedCharacter)
+      formData.append('user_image', userBlob, 'user.jpg')
+      formData.append('character_image', charBlob, 'character.jpg')
 
-      const apiResponse = await fetch('http://localhost:8000/api/morph', {
+      const apiResponse = await fetch('http://localhost:8000/morph', {
         method: 'POST',
         body: formData,
       })
 
       if (!apiResponse.ok) {
-        throw new Error('Failed to process image')
+        const errorData = await apiResponse.json()
+        throw new Error(errorData.error || 'Failed to process image')
       }
 
       const data = await apiResponse.json()
-      setResultImage(data.result_image)
+      setResultImage(data.image)
     } catch (error) {
       console.error('Error:', error)
-      alert('Failed to process image. Make sure the backend server is running.')
+      alert(`Failed to process image: ${error}. Make sure the backend server is running.`)
     } finally {
       setIsProcessing(false)
     }

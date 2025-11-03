@@ -1,84 +1,126 @@
-from fastapi import FastAPI, File, UploadFile, Form
+from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import base64
-from io import BytesIO
-from PIL import Image
 import os
+import subprocess
+import shutil
+from pathlib import Path
+import logging
 
-app = FastAPI(title="Superhero Photo Booth API")
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-# Enable CORS for frontend
+app = FastAPI()
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Import face morphing module
-try:
-    from ai.insightface_swap import swap_faces_advanced as morph_faces
-    print("✓ Using InsightFace for advanced face swapping")
-except ImportError as e:
-    print(f"InsightFace not available ({e}), falling back to simple morph")
-    try:
-        from ai.face_swap import morph_faces
-    except ImportError:
-        from ai.simple_morph import simple_morph as morph_faces
+TEMP_DIR = Path("temp")
+OUTPUT_DIR = Path("output")
+FACEFUSION_DIR = Path(".")
+
+TEMP_DIR.mkdir(exist_ok=True)
+OUTPUT_DIR.mkdir(exist_ok=True)
 
 @app.get("/")
 async def root():
-    return {"message": "Superhero Photo Booth API is running!"}
+    return {"status": "ok", "message": "Superhero Photobooth Backend"}
 
-@app.post("/api/morph")
+@app.post("/morph")
 async def morph_image(
     user_image: UploadFile = File(...),
-    character: str = Form(...)
+    character_image: UploadFile = File(...)
 ):
-    """
-    Endpoint to morph user's face onto a character body.
-    
-    Args:
-        user_image: User's uploaded photo
-        character: Selected character ID (ironman, spiderman, etc.)
-    
-    Returns:
-        JSON with base64 encoded result image
-    """
+    """Face swap using FaceFusion"""
     try:
-        # Read user image
-        user_img_bytes = await user_image.read()
-        user_img = Image.open(BytesIO(user_img_bytes))
+        logger.info("🔄 Received morph request")
         
-        # Get character image path
-        character_path = f"../public/characters/{character}.jpg"
+        # Save uploaded files
+        user_path = TEMP_DIR / "source_user.jpg"
+        character_path = TEMP_DIR / "target_character.jpg"
+        output_path = OUTPUT_DIR / "result_user.jpg"
         
-        if not os.path.exists(character_path):
-            return JSONResponse(
-                status_code=404,
-                content={"error": f"Character '{character}' not found"}
-            )
+        logger.info("💾 Saving uploaded files...")
+        with open(user_path, "wb") as f:
+            content = await user_image.read()
+            f.write(content)
+            logger.info(f"📊 User image size: {len(content)} bytes")
         
-        # Perform face morphing
-        result_img = morph_faces(user_img, character_path)
+        with open(character_path, "wb") as f:
+            content = await character_image.read()
+            f.write(content)
+            logger.info(f"📊 Character image size: {len(content)} bytes")
         
-        # Convert result to base64
-        buffered = BytesIO()
-        result_img.save(buffered, format="JPEG")
-        img_base64 = base64.b64encode(buffered.getvalue()).decode()
+        # Remove old output if exists
+        if output_path.exists():
+            output_path.unlink()
         
-        return {
-            "success": True,
-            "result_image": f"data:image/jpeg;base64,{img_base64}"
-        }
+        # Build FaceFusion command - use face_swapper processor
+        cmd = [
+            ".venv/bin/python",
+            "facefusion.py",
+            "headless-run",
+            "--source", str(user_path.absolute()),
+            "--target", str(character_path.absolute()),
+            "--output-path", str(output_path.absolute()),
+            "--processors", "face_swapper",
+            "--execution-providers", "cpu"
+        ]
         
-    except Exception as e:
-        return JSONResponse(
-            status_code=500,
-            content={"error": str(e)}
+        logger.info(f"🚀 Command: {' '.join(cmd)}")
+        
+        # Run FaceFusion from its directory
+        result = subprocess.run(
+            cmd,
+            cwd=FACEFUSION_DIR,
+            capture_output=True,
+            text=True,
+            timeout=120
         )
+        
+        if result.returncode != 0:
+            logger.error(f"❌ FaceFusion error:\n{result.stderr}")
+            logger.error(f"📋 Stdout:\n{result.stdout}")
+            raise HTTPException(status_code=500, detail=f"FaceFusion failed: {result.stderr}")
+        
+        logger.info(f"✅ FaceFusion completed:\n{result.stdout}")
+        
+        # Check if output was created
+        if not output_path.exists():
+            logger.error("❌ Output file not created")
+            raise HTTPException(status_code=500, detail="Output file not created")
+        
+        # Read and encode result
+        with open(output_path, "rb") as f:
+            result_bytes = f.read()
+            result_b64 = base64.b64encode(result_bytes).decode('utf-8')
+        
+        logger.info(f"✅ Result size: {len(result_bytes)} bytes")
+        
+        return JSONResponse({
+            "success": True,
+            "image": f"data:image/jpeg;base64,{result_b64}"
+        })
+        
+    except subprocess.TimeoutExpired:
+        logger.error("❌ FaceFusion timeout")
+        raise HTTPException(status_code=500, detail="Face swap processing timeout")
+    except Exception as e:
+        logger.error(f"❌ Error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        # Cleanup temp files
+        for p in [user_path, character_path]:
+            if p.exists():
+                p.unlink()
 
 if __name__ == "__main__":
     import uvicorn
